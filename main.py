@@ -95,7 +95,7 @@ class ViewLog(webapp.RequestHandler):
             self.response.out.write(table)
             self.response.out.write("</table>")
             
-            img_tag=cgi.escape('<img src="http://jobminestats.appspot.com/Ping/%s.png" height="0" width="0"/>'%pixel.key())
+            img_tag=cgi.escape('<img src="http://jobminestats.appspot.com/Ping/%s.gif" height="0" width="0"/>'%pixel.key())
             
             self.response.out.write("""<h2>Tracking Code</h2>
                 <textarea rows="2" cols="120">%s</textarea>
@@ -127,7 +127,7 @@ class Ping(webapp.RequestHandler):
             obj.put()
             
         pixel = db.get(pixel_key)
-        self.response.out.write("PONG %s %s"%(pixel_key, pixel.name))
+        #self.response.out.write("PONG %s %s"%(pixel_key, pixel.name))
        
         remote_addr = self.request.remote_addr
         user_agent  = self.request.headers['User-Agent']
@@ -137,6 +137,12 @@ class Ping(webapp.RequestHandler):
         pl.put()
         
         db.run_in_transaction(increment_views, pixel_key)
+        
+        self.response.headers['Content-Type']='image/gif'
+        self.response.headers['Last-Modified'] = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        self.response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        self.response.headers['Expires'] = 'Sat, 26 Jul 1997 05:00:00 GMT'
+        self.response.out.write(open('pixel.gif','r').read())
         
                  
 class Pixel(db.Model):
@@ -167,7 +173,7 @@ application = webapp.WSGIApplication(
     [
         ('/', MainPage),
         (r'/ViewLog/(.*)/', ViewLog),
-        (r'/Ping/(.*).png', Ping),
+        (r'/Ping/(.*).gif', Ping),
         ('/Add/',Add),
     ],
     debug=True)
