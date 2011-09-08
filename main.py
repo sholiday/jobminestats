@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.5
 #
-# Copyright 2007 Google Inc.
+# Copyright 2011 Stephen Holiday.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ class ViewLog(webapp.RequestHandler):
                 views+=1
                 dt = dt_to_eastern(p.date)
                 points = '%s\n[new Date(%s, %s, %s, %s, %s, %s, 0), %s],'%(points,dt.year,dt.month-1, dt.day, dt.hour, dt.minute, dt.second, views)
-                table = "%s\n<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"%(table,format_datetime(p.date), p.viewing_user, p.remote_addr,p.user_agent)
+                table = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, p.remote_addr,p.user_agent, table)
             self.response.out.write("""
                 <html>
                 <head>
