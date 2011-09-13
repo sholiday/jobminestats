@@ -65,7 +65,10 @@ class ViewLog(webapp.RequestHandler):
                 views+=1
                 dt = dt_to_eastern(p.date)
                 points = '%s\n[new Date(%s, %s, %s, %s, %s, %s, 0), %s],'%(points,dt.year,dt.month-1, dt.day, dt.hour, dt.minute, dt.second, views)
-                table = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, p.remote_addr,p.user_agent, table)
+                ip = p.remote_addr
+                country = getGeoIPCode(ip)
+                flag = '<img src="http://geoip.wtanaka.com/flag/%s.gif"'%country
+                table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, ip, flag, p.user_agent, table)
             self.response.out.write("""
                 <html>
                 <head>
@@ -179,6 +182,31 @@ application = webapp.WSGIApplication(
     debug=True)
 def main():
     run_wsgi_app(application)
+
+
+def getGeoIPCode(ipaddr):
+   '''
+    From http://code.google.com/p/geo-ip-location/wiki/GoogleAppEngine
+   '''
+   from google.appengine.api import memcache
+   memcache_key = "gip_%s" % ipaddr
+   data = memcache.get(memcache_key)
+   if data is not None:
+      return data
+
+   geoipcode = ''
+   from google.appengine.api import urlfetch
+   try:
+      fetch_response = urlfetch.fetch(
+            'http://geoip.wtanaka.com/cc/%s' % ipaddr)
+      if fetch_response.status_code == 200:
+         geoipcode = fetch_response.content
+   except urlfetch.Error, e:
+      pass
+
+   if geoipcode:
+      memcache.set(memcache_key, geoipcode)
+   return geoipcode
 
 if __name__ == "__main__":
     main()
