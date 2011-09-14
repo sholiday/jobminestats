@@ -17,6 +17,7 @@
 import cgi
 import datetime
 from itertools import groupby
+import simplejson as json
 
 from google.appengine.api import users
 from google.appengine.ext import webapp
@@ -66,9 +67,10 @@ class ViewLog(webapp.RequestHandler):
                 dt = dt_to_eastern(p.date)
                 points = '%s\n[new Date(%s, %s, %s, %s, %s, %s, 0), %s],'%(points,dt.year,dt.month-1, dt.day, dt.hour, dt.minute, dt.second, views)
                 ip = p.remote_addr
-                country = getGeoIPCode(ip)
-                flag = '<img src="http://geoip.wtanaka.com/flag/%s.gif"'%country
-                table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, ip, flag, p.user_agent, table)
+                ip_info = get_ip_info(ip)
+                location = '%s, %s'%(ip_info['cityName'],ip_info['regionName'])
+                flag = '<img src="http://geoip.wtanaka.com/flag/%s.gif"'%ip_info['countryCode'].lower()
+                table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, location, flag, p.user_agent, table)
             self.response.out.write("""
                 <html>
                 <head>
@@ -182,31 +184,32 @@ application = webapp.WSGIApplication(
     debug=True)
 def main():
     run_wsgi_app(application)
-
-
-def getGeoIPCode(ipaddr):
-   '''
-    From http://code.google.com/p/geo-ip-location/wiki/GoogleAppEngine
-   '''
-   from google.appengine.api import memcache
-   memcache_key = "gip_%s" % ipaddr
-   data = memcache.get(memcache_key)
-   if data is not None:
+ 
+def get_ip_info(ip):
+    from google.appengine.api import memcache
+    memcache_key = "geoip_%s" % ip
+    data = memcache.get(memcache_key)
+    if data is not None:
       return data
 
-   geoipcode = ''
-   from google.appengine.api import urlfetch
-   try:
-      fetch_response = urlfetch.fetch(
-            'http://geoip.wtanaka.com/cc/%s' % ipaddr)
-      if fetch_response.status_code == 200:
-         geoipcode = fetch_response.content
-   except urlfetch.Error, e:
-      pass
+    response = dict()
+    from google.appengine.api import urlfetch
+    try:
+        fetch_response = urlfetch.fetch(
+            'http://api.ipinfodb.com/v3/ip-city/?key=11fc3f495c7047e95a3ce497100fab52571d631935058066e778d8666903dae7&ip=%s&format=json' % ip)
+        if fetch_response.status_code == 200:
+            response = json.loads(fetch_response.content)
 
-   if geoipcode:
-      memcache.set(memcache_key, geoipcode)
-   return geoipcode
+            response['countryName']=response['countryName'].title()
+            response['regionName']=response['regionName'].title()
+            response['cityName']=response['cityName'].title()
+
+            memcache.set(memcache_key, response)
+    except urlfetch.Error, e:
+        pass
+
+          
+    return response
 
 if __name__ == "__main__":
     main()
