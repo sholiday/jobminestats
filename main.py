@@ -63,14 +63,15 @@ class ViewLog(webapp.RequestHandler):
             points=''
             views=0
             for p in results:
-                views+=1
-                dt = dt_to_eastern(p.date)
-                points = '%s\n[new Date(%s, %s, %s, %s, %s, %s, 0), %s],'%(points,dt.year,dt.month-1, dt.day, dt.hour, dt.minute, dt.second, views)
-                ip = p.remote_addr
-                ip_info = get_ip_info(ip)
-                location = '%s, %s'%(ip_info['cityName'],ip_info['regionName'])
-                flag = '<img src="http://geoip.wtanaka.com/flag/%s.gif"'%ip_info['countryCode'].lower()
-                table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, location, flag, p.user_agent, table)
+                if not ('%s'%p.viewing_user == '%s'%p.user):
+                    views+=1
+                    dt = dt_to_eastern(p.date)
+                    points = '%s\n[new Date(%s, %s, %s, %s, %s, %s, 0), %s],'%(points,dt.year,dt.month-1, dt.day, dt.hour, dt.minute, dt.second, views)
+                    ip = p.remote_addr
+                    ip_info = get_ip_info(ip)
+                    location = '%s, %s'%(ip_info['cityName'],ip_info['regionName'])
+                    flag = '<img src="http://geoip.wtanaka.com/flag/%s.gif"'%ip_info['countryCode'].lower()
+                    table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, location, flag, p.user_agent, table)
             self.response.out.write("""
                 <html>
                 <head>
@@ -98,7 +99,7 @@ class ViewLog(webapp.RequestHandler):
             self.response.out.write("<table border=\"1\"><tr><th>Date</th><th>User</th><th>IP</th><th>User Agent</th></tr>")
             
             self.response.out.write(table)
-            self.response.out.write("</table>")
+            self.response.out.write("</table> (Does not show your own views of your resume)")
             
             img_tag=cgi.escape('<img src="http://jobminestats.appspot.com/Ping/%s.gif" height="0" width="0"/>'%pixel.key())
             
