@@ -71,7 +71,7 @@ class ViewLog(webapp.RequestHandler):
                     ip_info = get_ip_info(ip)
                     location = '%s, %s'%(ip_info['cityName'],ip_info['regionName'])
                     flag = '<img src="http://geoip.wtanaka.com/flag/%s.gif"'%ip_info['countryCode'].lower()
-                    table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, location, flag, p.user_agent, table)
+                    table = "<tr><td>%s</td><td>%s</td><td>%s %s</td><td>%s</td><td>%s</td></tr>\n%s"%(format_datetime(p.date), p.viewing_user, location, flag, p.user_agent, p.referer, table)
             self.response.out.write("""
                 <html>
                 <head>
@@ -92,11 +92,11 @@ class ViewLog(webapp.RequestHandler):
                       }
                     </script>
                   </head>
-                <body>"""%points.strip(','))
+                <body>"""%(points.strip(',')))
             
             self.response.out.write("<h2>Views (%s)</h2>"%pixel.views)
             self.response.out.write("<div id='chart_div' style='width: 700px; height: 240px;'></div>")
-            self.response.out.write("<table border=\"1\"><tr><th>Date</th><th>User</th><th>IP</th><th>User Agent</th></tr>")
+            self.response.out.write("<table border=\"1\"><tr><th>Date</th><th>User</th><th>IP</th><th>User Agent</th><th>Referer</th></tr>")
             
             self.response.out.write(table)
             self.response.out.write("</table> (Does not show your own views of your resume)")
@@ -136,10 +136,10 @@ class Ping(webapp.RequestHandler):
         #self.response.out.write("PONG %s %s"%(pixel_key, pixel.name))
        
         remote_addr = self.request.remote_addr
-        user_agent  = self.request.headers['User-Agent']
-        
+        user_agent  = self.request.headers.get('User-Agent', None)
+        referer     = self.request.headers.get('Referer', None)
         viewing_user = users.get_current_user()
-        pl = PixelLog(parent=pixel, date=datetime.datetime.now(), user=pixel.user, viewing_user=viewing_user, remote_addr=remote_addr, user_agent=user_agent)
+        pl = PixelLog(parent=pixel, date=datetime.datetime.now(), user=pixel.user, viewing_user=viewing_user, remote_addr=remote_addr, user_agent=user_agent, referer=referer)
         pl.put()
         
         db.run_in_transaction(increment_views, pixel_key)
@@ -163,6 +163,7 @@ class PixelLog(db.Model):
     viewing_user = db.UserProperty()
     remote_addr = db.StringProperty()
     user_agent = db.TextProperty()
+    referer = db.TextProperty()
 
 eastern = pytz.timezone('US/Eastern')
 utc=pytz.timezone('UTC')
